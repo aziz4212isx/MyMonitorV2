@@ -24,11 +24,11 @@ jobs:
     - name: Install Dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pyinstaller customtkinter psutil keyboard pillow pywin32 wmi
+        pip install pyinstaller PySide6 pyqtgraph psutil keyboard pywin32
 
     - name: Build with PyInstaller
       run: |
-        pyinstaller --noconfirm --onefile --windowed --icon "icon.ico" --add-data "icon.ico;." "LightMonitor.py"
+        pyinstaller --noconfirm --onefile --windowed --name "LightMonitor" --icon "icon.ico" "main.py"
 
     - name: Update GitHub Release
       uses: softprops/action-gh-release@v2
