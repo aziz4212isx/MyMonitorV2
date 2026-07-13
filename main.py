@@ -108,7 +108,7 @@ class MainWindow(QMainWindow):
             self.overlay.show()
 
     def setup_tray(self):
-        from PySide6.QtWidgets import QSystemTrayIcon, QMenu
+        from PySide6.QtWidgets import QSystemTrayIcon, QMenu, QApplication, QStyle
         from PySide6.QtGui import QIcon
         import sys, os
         
@@ -120,7 +120,12 @@ class MainWindow(QMainWindow):
             return os.path.join(base_path, relative_path)
         
         self.tray_icon = QSystemTrayIcon(self)
-        self.tray_icon.setIcon(QIcon(resource_path("icon.ico")))
+        
+        # Try custom icon, fallback to built-in if missing/corrupt
+        my_icon = QIcon(resource_path("icon.ico"))
+        if my_icon.isNull():
+            my_icon = QApplication.style().standardIcon(QStyle.StandardPixmap.SP_ComputerIcon)
+        self.tray_icon.setIcon(my_icon)
         
         tray_menu = QMenu()
         show_action = tray_menu.addAction("Show Dashboard")
@@ -604,6 +609,7 @@ class MainWindow(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    app.setQuitOnLastWindowClosed(False) # Keep app running in System Tray when dashboard is closed
     window = MainWindow()
     window.show()
     sys.exit(app.exec())
