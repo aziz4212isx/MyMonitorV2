@@ -160,8 +160,13 @@ class LightMonitorApp(ctk.CTk):
         self._build_settings_ui()
 
         # Initialize tracking vars
-        self.last_net_io = psutil.net_io_counters()
-        self.last_disk_io = psutil.disk_io_counters(perdisk=True)
+        self.last_disk_io = psutil.disk_io_counters(perdisk=True) or {}  # guard: None on some systems
+        raw_net = psutil.net_io_counters()
+        self.last_net_io = raw_net  # net_io_counters() can also return None
+        if self.last_net_io is None:
+            # Create a zero-value sentinel using a simple namespace
+            import types
+            self.last_net_io = types.SimpleNamespace(bytes_recv=0, bytes_sent=0)
         self.last_time = time.time()
 
         self._window_active = True   # Bug #2/#3: thread-safe flag for UI state
