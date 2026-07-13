@@ -5,55 +5,44 @@ class CPUTempFetcher:
         self.method = None
         
         try:
-            cmd = ["powershell", "-NoProfile", "-Command", "Get-CimInstance -Namespace root/WMI -ClassName MSAcpi_ThermalZoneTemperature -ErrorAction Stop | Select-Object -First 1 -ExpandProperty CurrentTemperature"]
+            cmd = ["typeperf", "\\Thermal Zone Information(*)\\High Precision Temperature", "-sc", "1"]
             res = subprocess.run(cmd, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW, timeout=4)
-            if res.returncode == 0 and res.stdout.strip():
-                val = float(res.stdout.strip())
-                if val > 0:
-                    self.method = "wmi"
-        except Exception as e: print(f"[CPU Init WMI] {e}")
+            if res.returncode == 0 and "High Precision Temperature" in res.stdout:
+                self.method = "perf_high"
+        except Exception as e: print(f"[CPU Init Perf High] {e}")
 
         if not self.method:
             try:
-                cmd = ["powershell", "-NoProfile", "-Command", "(Get-Counter '\\Thermal Zone Information(*)\\High Precision Temperature' -ErrorAction Stop | Select-Object -ExpandProperty CounterSamples | Select-Object -First 1 CookedValue).CookedValue"]
+                cmd = ["typeperf", "\\Thermal Zone Information(*)\\Temperature", "-sc", "1"]
                 res = subprocess.run(cmd, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW, timeout=4)
-                if res.returncode == 0 and res.stdout.strip():
-                    self.method = "perf_high"
-            except Exception as e: print(f"[CPU Init Perf High] {e}")
-
-        if not self.method:
-            try:
-                cmd = ["powershell", "-NoProfile", "-Command", "(Get-Counter '\\Thermal Zone Information(*)\\Temperature' -ErrorAction Stop | Select-Object -ExpandProperty CounterSamples | Select-Object -First 1 CookedValue).CookedValue"]
-                res = subprocess.run(cmd, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW, timeout=4)
-                if res.returncode == 0 and res.stdout.strip():
+                if res.returncode == 0 and "Temperature" in res.stdout:
                     self.method = "perf_normal"
             except Exception as e: print(f"[CPU Init Perf Norm] {e}")
 
     def fetch(self, sys_data):
-        if self.method == "wmi":
+        if self.method == "perf_high":
             try:
-                cmd = ["powershell", "-NoProfile", "-Command", "Get-CimInstance -Namespace root/WMI -ClassName MSAcpi_ThermalZoneTemperature | Select-Object -First 1 -ExpandProperty CurrentTemperature"]
+                cmd = ["typeperf", "\\Thermal Zone Information(*)\\High Precision Temperature", "-sc", "1"]
                 res = subprocess.run(cmd, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW, timeout=4)
-                if res.stdout.strip():
-                    # R3-F: Replace comma with dot for non-en-US locales (e.g. German: 2731,5)
-                    raw = res.stdout.strip().replace(',', '.')
-                    sys_data.cpu_temp = str(round((float(raw) / 10) - 273.15, 1))
-            except: pass
-        elif self.method == "perf_high":
-            try:
-                cmd = ["powershell", "-NoProfile", "-Command", "(Get-Counter '\\Thermal Zone Information(*)\\High Precision Temperature' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty CounterSamples | Select-Object -First 1 CookedValue).CookedValue"]
-                res = subprocess.run(cmd, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW, timeout=4)
-                if res.stdout.strip():
-                    raw = res.stdout.strip().replace(',', '.')
-                    sys_data.cpu_temp = str(round((float(raw) / 10) - 273.15, 1))
-            except: pass
+                lines = [line.strip() for line in res.stdout.strip().split("\n") if line.strip()]
+                if len(lines) >= 2:
+                    val = lines[1].split(",")[1].replace('"', '')
+                    sys_data.cpu_temp = str(round((float(val) / 10) - 273.15, 1))
+            except subprocess.TimeoutExpired as e:
+                print(f"[CPU Fetch PerfHigh Timeout] {e}")
+            except Exception as e:
+                print(f"[CPU Fetch PerfHigh Error] {e}")
         elif self.method == "perf_normal":
             try:
-                cmd = ["powershell", "-NoProfile", "-Command", "(Get-Counter '\\Thermal Zone Information(*)\\Temperature' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty CounterSamples | Select-Object -First 1 CookedValue).CookedValue"]
+                cmd = ["typeperf", "\\Thermal Zone Information(*)\\Temperature", "-sc", "1"]
                 res = subprocess.run(cmd, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW, timeout=4)
-                if res.stdout.strip():
-                    raw = res.stdout.strip().replace(',', '.')
-                    sys_data.cpu_temp = str(round(float(raw) - 273.15, 1))
-            except: pass
+                lines = [line.strip() for line in res.stdout.strip().split("\n") if line.strip()]
+                if len(lines) >= 2:
+                    val = lines[1].split(",")[1].replace('"', '')
+                    sys_data.cpu_temp = str(round(float(val) - 273.15, 1))
+            except subprocess.TimeoutExpired as e:
+                print(f"[CPU Fetch PerfNorm Timeout] {e}")
+            except Exception as e:
+                print(f"[CPU Fetch PerfNorm Error] {e}")
         else:
             sys_data.cpu_temp = "N/A"

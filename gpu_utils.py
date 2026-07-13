@@ -30,6 +30,19 @@ class GPUFetcher:
                             self.vendor = "intel"
                         else:
                             self.vendor = "other"
+                            
+                        # Cache static AdapterRAM once!
+                        safe_name = self.name.replace("'", "''")
+                        cmd2 = ["powershell", "-NoProfile", "-Command", f"Get-CimInstance Win32_VideoController | Where-Object Name -eq '{safe_name}' | Select-Object -ExpandProperty AdapterRAM"]
+                        res2 = subprocess.run(cmd2, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW, timeout=4)
+                        if res2.stdout.strip():
+                            try:
+                                vram_bytes = int(res2.stdout.strip())
+                                self.cached_vram = str(vram_bytes // (1024*1024))
+                            except ValueError:
+                                self.cached_vram = "--"
+                        else:
+                            self.cached_vram = "--"
             except Exception as e: print(f"[GPU Init] {e}")
 
     def is_valid(self):
@@ -47,16 +60,9 @@ class GPUFetcher:
                     if len(parts) >= 8:
                         sys_data.gpu_temp, sys_data.gpu_use, sys_data.gpu_mem = parts[0], parts[1], parts[2]
                         sys_data.gpu_pow, sys_data.gpu_pow_limit, sys_data.gpu_c_clock, sys_data.gpu_m_clock, sys_data.gpu_fan = parts[3], parts[4], parts[5], parts[6], parts[7]
-            except Exception as e: print(f"[GPU Fetch] {e}")
+            except subprocess.TimeoutExpired as e:
+                print(f"[GPU Fetch NV Timeout] {e}")
+            except Exception as e:
+                print(f"[GPU Fetch NV Error] {e}")
         elif self.vendor in ("amd", "intel", "other"):
-            try:
-                # Need to properly escape the name for powershell
-                safe_name = self.name.replace("'", "''")
-                cmd = ["powershell", "-NoProfile", "-Command", f"Get-CimInstance Win32_VideoController | Where-Object Name -eq '{safe_name}' | Select-Object -ExpandProperty AdapterRAM"]
-                res = subprocess.run(cmd, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW, timeout=4)
-                if res.stdout.strip():
-                    try:
-                        vram_bytes = int(res.stdout.strip())
-                        sys_data.gpu_mem = str(vram_bytes // (1024*1024))
-                    except: pass
-            except Exception as e: print(f"[GPU Fetch] {e}")
+            sys_data.gpu_mem = getattr(self, "cached_vram", "--")

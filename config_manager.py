@@ -58,29 +58,40 @@ class ConfigManager:
 
     def save_config(self):
         with self.lock:
-            os.makedirs(self.app_dir, exist_ok=True)
-            try:
-                with open(self.config_path, 'w') as f:
-                    json.dump(self.config, f, indent=4)
-            except Exception as e:
-                print(f"[Config] Error saving config: {e}")
+            self._save_config_no_lock()
             
     def get_overlay_conf(self):
-        # Bug #3b fix: protect mutation with lock
         with self.lock:
             if "overlay" not in self.config:
                 self.config["overlay"] = copy.deepcopy(self.default_config["overlay"])
             for key, val in self.default_config["overlay"].items():
                 if key not in self.config["overlay"]:
                     self.config["overlay"][key] = val
-            return self.config["overlay"]
+            return copy.deepcopy(self.config["overlay"])
+
+    def set_overlay_conf(self, new_conf):
+        with self.lock:
+            self.config["overlay"] = copy.deepcopy(new_conf)
+            self._save_config_no_lock()
 
     def get_features_conf(self):
-        # Bug #3b fix: protect mutation with lock
         with self.lock:
             if "features" not in self.config:
                 self.config["features"] = copy.deepcopy(self.default_config["features"])
             for key, val in self.default_config["features"].items():
                 if key not in self.config["features"]:
                     self.config["features"][key] = val
-            return self.config["features"]
+            return copy.deepcopy(self.config["features"])
+
+    def set_features_conf(self, new_conf):
+        with self.lock:
+            self.config["features"] = copy.deepcopy(new_conf)
+            self._save_config_no_lock()
+
+    def _save_config_no_lock(self):
+        os.makedirs(self.app_dir, exist_ok=True)
+        try:
+            with open(self.config_path, 'w') as f:
+                json.dump(self.config, f, indent=4)
+        except Exception as e:
+            print(f"[Config] Error saving config: {e}")

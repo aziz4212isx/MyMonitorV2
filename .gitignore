@@ -3,3 +3,6 @@ build/
 dist/
 *.spec
 .vscode/
+_Tkinter_Disabled/
+*.disabled
+__pycache__/
