@@ -108,37 +108,74 @@ class MainWindow(QMainWindow):
             self.overlay.show()
 
     def setup_tray(self):
+        import logging
         from PySide6.QtWidgets import QSystemTrayIcon, QMenu, QApplication, QStyle
         from PySide6.QtGui import QIcon
         import sys, os
         
-        def resource_path(relative_path):
-            try:
-                base_path = sys._MEIPASS
-            except Exception:
-                base_path = os.path.abspath(".")
-            return os.path.join(base_path, relative_path)
+        # Setup logging for tray
+        log_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tray_debug.log")
+        logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+        logger = logging.getLogger("TraySetup")
         
-        self.tray_icon = QSystemTrayIcon(self)
-        
-        # Try custom icon, fallback to built-in if missing/corrupt
-        my_icon = QIcon(resource_path("icon.ico"))
-        if my_icon.isNull():
-            my_icon = QApplication.style().standardIcon(QStyle.StandardPixmap.SP_ComputerIcon)
-        self.tray_icon.setIcon(my_icon)
-        
-        tray_menu = QMenu()
-        show_action = tray_menu.addAction("Show Dashboard")
-        show_action.triggered.connect(self.showNormal)
-        
-        hud_action = tray_menu.addAction("Toggle HUD")
-        hud_action.triggered.connect(self.toggle_overlay)
-        
-        quit_action = tray_menu.addAction("Exit")
-        quit_action.triggered.connect(self.close_app)
-        
-        self.tray_icon.setContextMenu(tray_menu)
-        self.tray_icon.show()
+        try:
+            logger.info("Starting setup_tray...")
+            
+            # CEK #4: isSystemTrayAvailable
+            if not QSystemTrayIcon.isSystemTrayAvailable():
+                logger.error("System tray NOT available on this system! Icon will not show.")
+            else:
+                logger.info("System tray is available.")
+
+            def resource_path(relative_path):
+                try:
+                    base_path = sys._MEIPASS
+                except Exception:
+                    base_path = os.path.abspath(".")
+                return os.path.join(base_path, relative_path)
+            
+            # CEK #1 & #7: Object Lifetime & Threading (main thread, self parent)
+            self.tray_icon = QSystemTrayIcon(self)
+            
+            # CEK #2: ICON KOSONG / INVALID
+            icon_path = resource_path("icon.ico")
+            logger.info(f"Attempting to load icon from: {icon_path}")
+            my_icon = QIcon(icon_path)
+            
+            if my_icon.isNull():
+                logger.error("Primary icon failed to load or is invalid! Attempting fallback...")
+                my_icon = QApplication.style().standardIcon(QStyle.StandardPixmap.SP_ComputerIcon)
+                if my_icon.isNull():
+                    logger.error("Fallback icon ALSO failed to load! Icon will be blank/invisible.")
+                else:
+                    logger.info("Fallback icon loaded successfully.")
+            else:
+                logger.info("Primary icon loaded successfully.")
+                
+            self.tray_icon.setIcon(my_icon)
+            
+            # CEK #1: QMenu local var gets garbage collected! (MUST use self and parent)
+            self.tray_menu = QMenu(self)
+            
+            self.show_action = self.tray_menu.addAction("Show Dashboard")
+            self.show_action.triggered.connect(self.showNormal)
+            
+            self.hud_action = self.tray_menu.addAction("Toggle HUD")
+            self.hud_action.triggered.connect(self.toggle_overlay)
+            
+            self.quit_action = self.tray_menu.addAction("Exit")
+            self.quit_action.triggered.connect(self.close_app)
+            
+            self.tray_icon.setContextMenu(self.tray_menu)
+            logger.info("Context menu attached.")
+            
+            # CEK #3: show() called properly
+            self.tray_icon.show()
+            logger.info("tray_icon.show() executed.")
+            
+        except Exception as e:
+            # CEK #5: Exception Senyap
+            logger.error(f"[Tray] Setup failed with exception: {str(e)}")
 
     def apply_hotkey(self):
         try:
