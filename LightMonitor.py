@@ -153,6 +153,7 @@ class LightMonitorApp(ctk.CTk):
         }
         self.last_top5_time = 0
         self.last_alert_time = 0
+        self._proc_cache: dict = {}  # Bug #2 fix: cache Process objects for real cpu_percent delta
 
         # Thread safety
         self.data_lock = threading.Lock()
@@ -663,18 +664,28 @@ class LightMonitorApp(ctk.CTk):
                 if feat.get("top5_process"):
                     if current_time - self.last_top5_time >= 5:
                         try:
+                            # Bug #2 fix: reuse cached Process objects so cpu_percent() has
+                            # two time-points and returns real usage (not always 0%)
+                            new_cache = {}
                             procs = []
-                            for p in psutil.process_iter(['name', 'cpu_percent', 'memory_percent']):
+                            for p in psutil.process_iter(['name', 'pid', 'memory_percent']):
                                 try:
-                                    info = p.info
-                                    if info['name'] and info['name'] != 'System Idle Process':
-                                        procs.append(info)
-                                except: pass
-                            # CPU Top
-                            top_cpu = sorted(procs, key=lambda x: x['cpu_percent'] or 0.0, reverse=True)[:5]
-                            d.top5_cpu = [f"{p['name'][:15]}: {p['cpu_percent']}%" for p in top_cpu]
-                            # RAM Top
-                            top_ram = sorted(procs, key=lambda x: x['memory_percent'] or 0.0, reverse=True)[:5]
+                                    pid = p.pid
+                                    name = p.info['name']
+                                    if not name or name == 'System Idle Process':
+                                        continue
+                                    # Reuse cached object for cpu_percent delta
+                                    cached = self._proc_cache.get(pid, p)
+                                    cpu_pct = cached.cpu_percent(interval=None)
+                                    mem_pct = p.info['memory_percent'] or 0.0
+                                    procs.append({'name': name, 'cpu_percent': cpu_pct, 'memory_percent': mem_pct})
+                                    new_cache[pid] = cached
+                                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                                    pass
+                            self._proc_cache = new_cache
+                            top_cpu = sorted(procs, key=lambda x: x['cpu_percent'], reverse=True)[:5]
+                            d.top5_cpu = [f"{p['name'][:15]}: {p['cpu_percent']:.1f}%" for p in top_cpu]
+                            top_ram = sorted(procs, key=lambda x: x['memory_percent'], reverse=True)[:5]
                             d.top5_ram = [f"{p['name'][:15]}: {p['memory_percent']:.1f}%" for p in top_ram]
                         except Exception as e:
                             logger.error(f"[Top5] {e}")

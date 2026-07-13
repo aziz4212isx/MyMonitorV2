@@ -1,13 +1,14 @@
 import os
 import json
 import threading
+import copy
 
 class ConfigManager:
     def __init__(self):
         self.lock = threading.Lock()
         appdata = os.getenv('APPDATA')
         if not appdata:
-            appdata = os.path.expanduser('~') # fallback
+            appdata = os.path.expanduser('~')
         self.app_dir = os.path.join(appdata, 'LightMonitor')
         self.config_path = os.path.join(self.app_dir, 'config.json')
         
@@ -37,12 +38,22 @@ class ConfigManager:
     def load_config(self):
         with self.lock:
             if not os.path.exists(self.config_path):
-                return self.default_config
+                # Bug #3 fix: return a DEEP COPY, not the same object reference
+                return copy.deepcopy(self.default_config)
             try:
                 with open(self.config_path, 'r') as f:
-                    return json.load(f)
-            except:
-                return self.default_config
+                    loaded = json.load(f)
+                    # Merge missing keys from default (forward-compat for new config fields)
+                    for section, vals in self.default_config.items():
+                        if section not in loaded:
+                            loaded[section] = copy.deepcopy(vals)
+                        else:
+                            for key, val in vals.items():
+                                if key not in loaded[section]:
+                                    loaded[section][key] = val
+                    return loaded
+            except Exception:
+                return copy.deepcopy(self.default_config)
 
     def save_config(self):
         with self.lock:
@@ -54,18 +65,21 @@ class ConfigManager:
                 print(f"[Config] Error saving config: {e}")
             
     def get_overlay_conf(self):
-        if "overlay" not in self.config:
-            self.config["overlay"] = self.default_config["overlay"]
-        # Handle case where fields might be missing in existing config
-        for key, val in self.default_config["overlay"].items():
-            if key not in self.config["overlay"]:
-                self.config["overlay"][key] = val
-        return self.config["overlay"]
+        # Bug #3b fix: protect mutation with lock
+        with self.lock:
+            if "overlay" not in self.config:
+                self.config["overlay"] = copy.deepcopy(self.default_config["overlay"])
+            for key, val in self.default_config["overlay"].items():
+                if key not in self.config["overlay"]:
+                    self.config["overlay"][key] = val
+            return self.config["overlay"]
 
     def get_features_conf(self):
-        if "features" not in self.config:
-            self.config["features"] = self.default_config["features"]
-        for key, val in self.default_config["features"].items():
-            if key not in self.config["features"]:
-                self.config["features"][key] = val
-        return self.config["features"]
+        # Bug #3b fix: protect mutation with lock
+        with self.lock:
+            if "features" not in self.config:
+                self.config["features"] = copy.deepcopy(self.default_config["features"])
+            for key, val in self.default_config["features"].items():
+                if key not in self.config["features"]:
+                    self.config["features"][key] = val
+            return self.config["features"]

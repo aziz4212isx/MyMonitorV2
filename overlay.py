@@ -93,7 +93,9 @@ class CompactOverlay(ctk.CTkToplevel):
             self.bind_drag(row); self.bind_drag(lbl); self.bind_drag(val)
             
         h = 10 + (len([g for g in groups.values() if g]) * (self.f_size + 16))
-        self.geometry(f"{self.f_size * 25}x{h}")
+        # Bug #5 fix: wider multiplier + minimum to prevent text overflow
+        w = max(200, self.f_size * 32)
+        self.geometry(f"{w}x{h}")
 
     def _build_classic_layout(self, metrics):
         labels_map = {
@@ -179,7 +181,11 @@ class CompactOverlay(ctk.CTkToplevel):
             
         for key, val in d.disk_data.items():
             if key != "GLOBAL_IO":
-                self.metric_buffer[f"disk_usage_{key}"] = f"{val['pct']}%"
+                # Bug #4 fix: val can be None when drive is unreadable
+                if val is None:
+                    self.metric_buffer[f"disk_usage_{key}"] = "--"
+                else:
+                    self.metric_buffer[f"disk_usage_{key}"] = f"{val['pct']}%"
 
         layout = self.conf.get("layout", "RTSS Compact")
         if layout == "RTSS Compact":
