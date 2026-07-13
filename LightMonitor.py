@@ -376,18 +376,6 @@ class LightMonitorApp(ctk.CTk):
         self.hud_opac_slider.set(self.config_mgr.get_overlay_conf().get("transparency", 0.85))
         self.hud_opac_slider.pack(fill="x", padx=20, pady=(0, 10))
 
-
-    def _update_font_lbl(self, val):
-        val = int(val)
-        self.hud_font_lbl.configure(text=f"Font Size: {val}")
-        # Not applying live to avoid constant UI rebuilds during dragging
-
-    def _update_opacity_lbl(self, val):
-        self.hud_opac_lbl.configure(text=f"Background Opacity: {val:.2f}")
-        if self.overlay_window and self.overlay_window.winfo_exists():
-            self.overlay_window.attributes("-alpha", val)
-
-
         # --- HUD CUSTOMIZATION ---
         cust_frame = ctk.CTkFrame(self.set_scroll, fg_color="transparent")
         cust_frame.pack(fill="x", padx=20, pady=5)
@@ -448,6 +436,15 @@ class LightMonitorApp(ctk.CTk):
         self.alert_gpu_entry.pack(side="left", padx=10)
 
         ctk.CTkButton(self.set_scroll, text="Save Settings", command=self._save_settings, width=120).pack(anchor="w", padx=20, pady=20)
+
+    def _update_font_lbl(self, val):
+        val = int(val)
+        self.hud_font_lbl.configure(text=f"Font Size: {val}")
+
+    def _update_opacity_lbl(self, val):
+        self.hud_opac_lbl.configure(text=f"Background Opacity: {val:.2f}")
+        if self.overlay_window and self.overlay_window.winfo_exists():
+            self.overlay_window.attributes("-alpha", val)
 
     def _save_settings(self):
         # Overlay
