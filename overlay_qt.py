@@ -131,8 +131,10 @@ class CompactOverlay(QWidget):
             if m == "cpu_usage": vals[m] = f"{d.cpu_use}%"
             elif m == "cpu_temp": vals[m] = f"{d.cpu_temp}°C"
             elif m == "cpu_freq": vals[m] = f"{d.cpu_freq} MHz"
+            elif m == "cpu_power": vals[m] = f"{d.cpu_pow} W"
             elif m == "gpu_usage": vals[m] = f"{d.gpu_use}%"
             elif m == "gpu_temp": vals[m] = f"{d.gpu_temp}°C"
+            elif m == "gpu_power": vals[m] = f"{d.gpu_pow} W"
             elif m == "ram_usage": vals[m] = f"{d.ram_pct}% ({d.ram_used:.1f}GB)"
             elif m == "vram_usage": vals[m] = f"{d.gpu_mem} MB"
             elif m == "swap_usage": vals[m] = f"{d.swap_pct}%"
@@ -163,8 +165,8 @@ class CompactOverlay(QWidget):
         elif layout_type == "Horizontal Bar":
             # Combine all metrics into a single line separated by " | "
             labels = {
-                "cpu_usage": "CPU", "cpu_temp": "CPU Tmp", "cpu_freq": "CPU Clk",
-                "gpu_usage": "GPU", "gpu_temp": "GPU Tmp", "vram_usage": "VRAM",
+                "cpu_usage": "CPU", "cpu_temp": "CPU Tmp", "cpu_freq": "CPU Clk", "cpu_power": "CPU Pwr",
+                "gpu_usage": "GPU", "gpu_temp": "GPU Tmp", "vram_usage": "VRAM", "gpu_power": "GPU Pwr",
                 "ram_usage": "RAM", "swap_usage": "Swap", "net_speed": "Net", "disk_io": "Disk I/O"
             }
             parts = []
@@ -176,8 +178,8 @@ class CompactOverlay(QWidget):
         else:
             # Classic Layout
             labels = {
-                "cpu_usage": "CPU", "cpu_temp": "CPU Tmp", "cpu_freq": "CPU Clk",
-                "gpu_usage": "GPU", "gpu_temp": "GPU Tmp", "vram_usage": "VRAM",
+                "cpu_usage": "CPU", "cpu_temp": "CPU Tmp", "cpu_freq": "CPU Clk", "cpu_power": "CPU Pwr",
+                "gpu_usage": "GPU", "gpu_temp": "GPU Tmp", "vram_usage": "VRAM", "gpu_power": "GPU Pwr",
                 "ram_usage": "RAM", "swap_usage": "Swap", "net_speed": "Net", "disk_io": "Disk I/O"
             }
             for m in enabled:

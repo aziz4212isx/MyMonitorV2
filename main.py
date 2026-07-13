@@ -261,8 +261,10 @@ class MainWindow(QMainWindow):
         info_layout = QHBoxLayout()
         self.cpu_temp_lbl = QLabel("Temp: -- °C")
         self.cpu_clock_lbl = QLabel("Clock: -- MHz")
+        self.cpu_pow_lbl = QLabel("Power: -- W")
         info_layout.addWidget(self.cpu_temp_lbl)
         info_layout.addWidget(self.cpu_clock_lbl)
+        info_layout.addWidget(self.cpu_pow_lbl)
         layout.addLayout(info_layout)
         
         self.cpu_usage_lbl = QLabel("Total Usage: 0%")
@@ -359,8 +361,8 @@ class MainWindow(QMainWindow):
         self.metric_checkboxes = {}
         
         available_metrics = [
-            "cpu_usage", "cpu_temp", "cpu_freq",
-            "gpu_usage", "gpu_temp", "vram_usage",
+            "cpu_usage", "cpu_temp", "cpu_freq", "cpu_power",
+            "gpu_usage", "gpu_temp", "vram_usage", "gpu_power",
             "ram_usage", "swap_usage", "net_speed",
             "disk_io", "disk_usage_C:"
         ]
@@ -539,6 +541,7 @@ class MainWindow(QMainWindow):
         # Update CPU Tab
         self.cpu_temp_lbl.setText(f"Temp: {d.cpu_temp}°C")
         self.cpu_clock_lbl.setText(f"Clock: {d.cpu_freq} MHz")
+        self.cpu_pow_lbl.setText(f"Power: {d.cpu_pow} W")
         self.cpu_usage_lbl.setText(f"Total Usage: {d.cpu_use}%")
         self.cpu_progress.setValue(int(d.cpu_use))
         
