@@ -110,10 +110,17 @@ class MainWindow(QMainWindow):
     def setup_tray(self):
         from PySide6.QtWidgets import QSystemTrayIcon, QMenu
         from PySide6.QtGui import QIcon
-        import sys
+        import sys, os
+        
+        def resource_path(relative_path):
+            try:
+                base_path = sys._MEIPASS
+            except Exception:
+                base_path = os.path.abspath(".")
+            return os.path.join(base_path, relative_path)
         
         self.tray_icon = QSystemTrayIcon(self)
-        self.tray_icon.setIcon(QIcon("icon.ico"))
+        self.tray_icon.setIcon(QIcon(resource_path("icon.ico")))
         
         tray_menu = QMenu()
         show_action = tray_menu.addAction("Show Dashboard")
