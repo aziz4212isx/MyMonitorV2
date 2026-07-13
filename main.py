@@ -138,7 +138,7 @@ class MainWindow(QMainWindow):
             self.tray_icon = QSystemTrayIcon(self)
             
             # CEK #2: ICON KOSONG / INVALID
-            icon_path = resource_path("icon.ico")
+            icon_path = resource_path("icon.png")
             logger.info(f"Attempting to load icon from: {icon_path}")
             my_icon = QIcon(icon_path)
             

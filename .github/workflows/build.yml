@@ -28,7 +28,7 @@ jobs:
 
     - name: Build with PyInstaller
       run: |
-        pyinstaller --noconfirm --onefile --windowed --name "LightMonitor" --icon "icon.ico" "main.py"
+        pyinstaller --noconfirm --onefile --windowed --name "LightMonitor" --icon "icon.ico" --add-data "icon.png;." --add-data "icon.ico;." "main.py"
 
     - name: Update GitHub Release
       uses: softprops/action-gh-release@v2
