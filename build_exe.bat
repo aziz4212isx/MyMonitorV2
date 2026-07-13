@@ -28,7 +28,7 @@ echo.
 :: --windowed: hide the console window when running the app
 :: --icon: set the app logo
 :: --add-data: include the icon inside the executable bundle
-python -m PyInstaller --clean --noconfirm --onefile --windowed --icon="icon.ico" --add-data "icon.ico;." --name "LightMonitor" LightMonitor.py
+python -m PyInstaller --clean --noconfirm --onefile --windowed --icon="icon.ico" --add-data "icon.ico;." --name "LightMonitor" main.py
 
 echo.
 echo ===================================================
