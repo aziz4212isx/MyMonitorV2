@@ -1,8 +1,10 @@
 import os
 import json
+import threading
 
 class ConfigManager:
     def __init__(self):
+        self.lock = threading.Lock()
         appdata = os.getenv('APPDATA')
         if not appdata:
             appdata = os.path.expanduser('~') # fallback
@@ -33,21 +35,23 @@ class ConfigManager:
         self.config = self.load_config()
 
     def load_config(self):
-        if not os.path.exists(self.config_path):
-            return self.default_config
-        try:
-            with open(self.config_path, 'r') as f:
-                return json.load(f)
-        except:
-            return self.default_config
+        with self.lock:
+            if not os.path.exists(self.config_path):
+                return self.default_config
+            try:
+                with open(self.config_path, 'r') as f:
+                    return json.load(f)
+            except:
+                return self.default_config
 
     def save_config(self):
-        os.makedirs(self.app_dir, exist_ok=True)
-        try:
-            with open(self.config_path, 'w') as f:
-                json.dump(self.config, f, indent=4)
-        except Exception as e:
-            print(f"[Config] Error saving config: {e}")
+        with self.lock:
+            os.makedirs(self.app_dir, exist_ok=True)
+            try:
+                with open(self.config_path, 'w') as f:
+                    json.dump(self.config, f, indent=4)
+            except Exception as e:
+                print(f"[Config] Error saving config: {e}")
             
     def get_overlay_conf(self):
         if "overlay" not in self.config:

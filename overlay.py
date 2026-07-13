@@ -13,7 +13,9 @@ class CompactOverlay(ctk.CTkToplevel):
         self.attributes("-alpha", self.conf.get("transparency", 0.85))
         
         pos = self.conf.get("position", {"x": 100, "y": 100})
-        self.geometry(f"+{pos['x']}+{pos['y']}")
+        x = max(0, min(pos.get("x", 100), self.winfo_screenwidth() - 100))
+        y = max(0, min(pos.get("y", 100), self.winfo_screenheight() - 50))
+        self.geometry(f"+{x}+{y}")
         
         self.configure(fg_color="#121212")
         

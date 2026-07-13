@@ -533,7 +533,9 @@ class LightMonitorApp(ctk.CTk):
                     d.cpu_cores = psutil.cpu_percent(interval=None, percpu=True)
                 except Exception as e: logger.error(f"[CPU Usage] {e}")
                     
-                try: d.cpu_freq = str(round(psutil.cpu_freq().current))
+                try: 
+                    freq = psutil.cpu_freq()
+                    d.cpu_freq = str(round(freq.current)) if freq else "N/A"
                 except Exception as e: logger.error(f"[CPU Freq] {e}")
                 
                 main_active = self.state() != 'iconic' and self.state() != 'withdrawn'
@@ -571,23 +573,21 @@ class LightMonitorApp(ctk.CTk):
 
                     d_read = d_write = 0.0
                     if time_diff > 10:
-                        # System probably slept or lagged heavily. Skip calc to prevent massive spikes.
                         self.last_net_io = current_net_io
                         self.last_disk_io = current_disk_io
                         self.last_time = current_time
                         time_diff = 0
-                    elif time_diff > 0:
-
+                    elif time_diff >= 0.1:
                         total_read_now = sum(disk.read_bytes for disk in current_disk_io.values())
                         total_write_now = sum(disk.write_bytes for disk in current_disk_io.values())
                         total_read_last = sum(disk.read_bytes for disk in self.last_disk_io.values())
                         total_write_last = sum(disk.write_bytes for disk in self.last_disk_io.values())
                         
-                        d_read = (total_read_now - total_read_last) / time_diff / (1024**2)
-                        d_write = (total_write_now - total_write_last) / time_diff / (1024**2)
+                        d_read = max(0.0, (total_read_now - total_read_last) / time_diff / (1024**2))
+                        d_write = max(0.0, (total_write_now - total_write_last) / time_diff / (1024**2))
 
-                        d.dl_speed = (current_net_io.bytes_recv - self.last_net_io.bytes_recv) / time_diff / 1024
-                        d.ul_speed = (current_net_io.bytes_sent - self.last_net_io.bytes_sent) / time_diff / 1024
+                        d.dl_speed = max(0.0, (current_net_io.bytes_recv - self.last_net_io.bytes_recv) / time_diff / 1024)
+                        d.ul_speed = max(0.0, (current_net_io.bytes_sent - self.last_net_io.bytes_sent) / time_diff / 1024)
                     
                     d.disk_data["GLOBAL_IO"] = {"read": d_read, "write": d_write}
                     d.net_tot_dl = current_net_io.bytes_recv / (1024**3)

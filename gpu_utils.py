@@ -10,15 +10,15 @@ class GPUFetcher:
         if self.has_nvidia:
             self.vendor = "nvidia"
             try:
-                cmd = 'nvidia-smi --query-gpu=name --format=csv,noheader'
-                res = subprocess.run(cmd, shell=True, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+                cmd = ["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"]
+                res = subprocess.run(cmd, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW, timeout=4)
                 if res.stdout.strip():
                     self.name = res.stdout.strip()
             except Exception as e: print(f"[GPU Init] {e}")
         else:
             try:
-                cmd = 'powershell -NoProfile -Command "Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name"'
-                res = subprocess.run(cmd, shell=True, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+                cmd = ["powershell", "-NoProfile", "-Command", "Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name"]
+                res = subprocess.run(cmd, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW, timeout=4)
                 output = res.stdout.strip()
                 if output:
                     names = [n for n in output.split('\n') if n.strip()]
@@ -40,8 +40,8 @@ class GPUFetcher:
         
         if self.vendor == "nvidia":
             try:
-                smi_cmd = 'nvidia-smi --query-gpu=temperature.gpu,utilization.gpu,memory.used,power.draw,power.limit,clocks.current.graphics,clocks.current.memory,fan.speed --format=csv,noheader,nounits'
-                smi_res = subprocess.run(smi_cmd, shell=True, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+                smi_cmd = ["nvidia-smi", "--query-gpu=temperature.gpu,utilization.gpu,memory.used,power.draw,power.limit,clocks.current.graphics,clocks.current.memory,fan.speed", "--format=csv,noheader,nounits"]
+                smi_res = subprocess.run(smi_cmd, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW, timeout=4)
                 if smi_res.stdout.strip():
                     parts = [p.strip() for p in smi_res.stdout.strip().split(',')]
                     if len(parts) >= 8:
@@ -52,8 +52,8 @@ class GPUFetcher:
             try:
                 # Need to properly escape the name for powershell
                 safe_name = self.name.replace("'", "''")
-                cmd = f'powershell -NoProfile -Command "Get-CimInstance Win32_VideoController | Where-Object Name -eq \'{safe_name}\' | Select-Object -ExpandProperty AdapterRAM"'
-                res = subprocess.run(cmd, shell=True, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+                cmd = ["powershell", "-NoProfile", "-Command", f"Get-CimInstance Win32_VideoController | Where-Object Name -eq '{safe_name}' | Select-Object -ExpandProperty AdapterRAM"]
+                res = subprocess.run(cmd, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW, timeout=4)
                 if res.stdout.strip():
                     try:
                         vram_bytes = int(res.stdout.strip())
